@@ -1,6 +1,7 @@
 const fs = require('fs');
-const path = require('path');
 const filenames = process.argv.slice(2);
+const walker = require('./libs/walker');
+const path = require('path');
 
 if (filenames.length < 2) {
   console.error('Должно быть задано не менее 2-х параметров');
@@ -21,54 +22,47 @@ if (!fs.existsSync(dist)) {
   });
 }
 
-const readDir = base => {
-  fs.readdirSync(base).forEach(item => {
-    let localBase = path.join(base, item);
-    if (!fs.statSync(localBase).isDirectory()) {
-      // создаем папку по первой букве файла
-      let firstWord = item.charAt(0).toUpperCase();
-      let dir = path.join(dist, firstWord);
-      if (!fs.existsSync(dir)) {
-        fs.mkdir(dir, err => {
-          if (err) {
-            console.error(err.message);
-            process.exit(1);
-          }
-        });
+const copyFiles = (item, localBase, done) => {
+  // создаем папку-приемник по первой букве файла
+  let firstWord = item.charAt(0).toUpperCase();
+  let dir = path.join(dist, firstWord);
+  if (!fs.existsSync(dir)) {
+    fs.mkdir(dir, err => {
+      if (err) {
+        done(err.message);
       }
-      // копируем файл в папку-приемник
-      let newFile = path.join(dir, item);
-      fs.link(localBase, newFile, err => {
-        if (err) {
-          console.error(err.message);
-          process.exit(1);
-        }
-      });
-      // удаляем файл источник
-      if (del) {
-        fs.unlink(localBase, err => {
-          if (err) {
-            console.error(err.message);
-            process.exit(1);
-          }
-        });
-      }
-    } else {
-      readDir(localBase);
-      // удаляем папку источник
-      if (del) {
-        fs.rmdir(localBase, err => {
-          if (err) {
-            console.error(err.message);
-            process.exit(1);
-          }
-        });
-      }
-    }
-  });
+    });
+  }
+  // копируем файл в папку-приемник
+  let newFile = path.join(dir, item);
+  try {
+    fs.linkSync(localBase, newFile);
+  } catch (err) {
+    done(err.message);
+  }
+  done();
 };
 
-readDir(src);
+const moveFiles = (item, localBase, done) => {
+  copyFiles(item, localBase, done);
+  // удаляем файл источник
+  if (del) {
+    try {
+      fs.unlinkSync(localBase);
+    } catch (err) {
+      done(err.message);
+    }
+  }
+  done();
+};
+
+walker(src, del, del ? moveFiles : copyFiles, err => {
+  if (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+});
+
 if (del) {
   fs.rmdir(src, err => {
     if (err) {
