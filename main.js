@@ -21,15 +21,23 @@ const argv = yargs
   .epilog('Node.js 1st week meeting')
   .argv;
 
-const timerId = setInterval(() => {
-  console.log(Date());
+const timerId = (point) => setInterval(() => {
+  if (new Date() - point >= parseInt(argv.duration)) {
+    clearInterval(timerId);
+  } else {
+    console.log(Date());
+  }
 }, parseInt(argv.interval));
 
-const server = http.createServer((req, res) => {
-  setTimeout(() => {
-    clearInterval(timerId);
-    res.end(Date());
-  }, parseInt(argv.duration));
+const server = http.createServer(async (req, res) => {
+  if (req.method === 'GET') {
+    setTimeout(() => {
+      res.end('Server stoped in ' + Date());
+    }, parseInt(argv.duration));
+    timerId(new Date());
+  } else {
+    res.end('Seng GET request for rezult');
+  }
 });
 
 server.listen(port, () => {
