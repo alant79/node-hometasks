@@ -21,7 +21,9 @@ const argv = yargs
   .epilog('Node.js 1st week meeting')
   .argv;
 
-const timerId = (point) => setInterval(() => {
+const point = new Date();
+
+const timerId = setInterval(() => {
   if (new Date() - point >= parseInt(argv.duration)) {
     clearInterval(timerId);
   } else {
@@ -31,10 +33,7 @@ const timerId = (point) => setInterval(() => {
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET') {
-    setTimeout(() => {
-      res.end('Server stoped in ' + Date());
-    }, parseInt(argv.duration));
-    timerId(new Date());
+    res.end('Server stopped in ' + new Date());
   } else {
     res.end('Seng GET request for rezult');
   }
