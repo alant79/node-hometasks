@@ -1,16 +1,17 @@
 const path = require('path');
 const fs = require('fs');
-const walk = (base, callbackOnFolder, callbackOnFile, done) => {
-  fs.readdirSync(base).forEach(item => {
-    let localBase = path.join(base, item);
-    if (!fs.statSync(localBase).isDirectory()) {
-      callbackOnFile(item, localBase, done);
-    } else {
-      walk(localBase, callbackOnFolder, callbackOnFile, done);
-      if (callbackOnFolder) {
-        callbackOnFolder(localBase, done);
+const walk = (base, callbackOnFolder, callbackOnFile) => {
+  return new Promise(resolve => {
+    fs.readdirSync(base).forEach(async item => {
+      let localBase = path.join(base, item);
+      if (!fs.statSync(localBase).isDirectory()) {
+        await callbackOnFile(item, localBase, resolve);
+      } else {
+        walk(localBase, callbackOnFolder, callbackOnFile).then(async () => {
+          callbackOnFolder && await callbackOnFolder(localBase, resolve);
+        });
       }
-    }
+    });
   });
 };
 
