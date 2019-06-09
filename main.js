@@ -56,7 +56,17 @@ const moveFiles = (item, localBase, done) => {
   done();
 };
 
-walker(src, del, del ? moveFiles : copyFiles, err => {
+const delFolder = (localBase, done) => {
+  // удаляем папку источник
+  try {
+    fs.rmdirSync(localBase);
+  } catch (err) {
+    done(err.message);
+  }
+  done();
+};
+
+walker(src, del ? delFolder : null, del ? moveFiles : copyFiles, err => {
   if (err) {
     console.error(err.message);
     process.exit(1);
