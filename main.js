@@ -1,44 +1,42 @@
+const URL = 'https://www.work.ua';
+const URLSEARCH = '/ru/jobs-node+js/';
+const scrape = require('./libs/scrape');
+const { groupByCity, exportToExcel } = require('./libs/transform');
+const fs = require('fs');
 const yargs = require('yargs');
-const http = require('http');
-const port = 3000;
 const argv = yargs
   .usage('Usage: $0 [options]')
   .help('help')
   .alias('help', 'h')
   .version('0.0.1')
   .alias('version', 'v')
-  .example('$0 --interval 2000 --duration 6000', '--> через interval (мсек) происходит вывод в консоль времени, прекращение вывода через duration (мсек)')
-  .option('interval', {
-    alias: 'i',
-    describe: 'Интревал в мсек, через который будет происходить вывод в консоль времени',
+  .example('$0 --format json --group', '--> выгрузка данных в JSON с группировкой по городу')
+  .example('$1 --format exel', '--> выгрузка данных в EXCEL')
+  .option('format', {
+    alias: 'f',
+    describe: 'Формат выгрузки JSON или EXCEL',
     demandOption: true
   })
-  .option('duration', {
-    alias: 'd',
-    describe: 'Длительность в мсек, через которую выводит в консоль прекратится',
-    demandOption: true
+  .option('group', {
+    alias: 'g',
+    describe: 'Необходимо сгруппировать данные по городу',
+    type: Boolean
   })
-  .epilog('Node.js 1st week meeting')
+  .epilog('Node.js web scraping')
   .argv;
-
-const point = new Date();
-
-const timerId = setInterval(() => {
-  if (new Date() - point >= parseInt(argv.duration)) {
-    clearInterval(timerId);
-  } else {
-    console.log(Date());
-  }
-}, parseInt(argv.interval));
-
-const server = http.createServer(async (req, res) => {
-  if (req.method === 'GET') {
-    res.end('Server stopped in ' + new Date());
-  } else {
-    res.end('Seng GET request for rezult');
-  }
-});
-
-server.listen(port, () => {
-  console.log(`Server running on port: ${port}`);
-});
+if (argv.format !== 'json' && argv.format !== 'excel') {
+  console.log('Необходимо выбрать формат json или excel');
+  process.exit(1);
+} else {
+  scrape(URL, URLSEARCH).then((res) => {
+    if (argv.format === 'json') {
+      if (argv.group) {
+        fs.writeFileSync('scrape.json', JSON.stringify(groupByCity(res), '', 2));
+      } else {
+        fs.writeFileSync('scrape.json', JSON.stringify(res));
+      }
+    } else {
+      exportToExcel(res);
+    }
+  });
+}
