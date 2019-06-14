@@ -27,7 +27,10 @@ const scrape = (url, searchString) => {
             let queue = [];
             // добавляем задания на чтение каждой странице о компании
             for (let i = 0; i < arr.length; i++) {
-              queue.push(readCompany(arr, i));
+              // в очередь добавляем только те ссылки на компанию, которые встретились первый раз
+              if (!arr[i].site) {
+                queue.push(readCompany(arr, i));
+              }
             }
             promiseWaterfall(queue).then(res => {
               resolve(res);
@@ -85,6 +88,20 @@ const readVacancion = (url, arr, i) => {
                 .next('dd')
                 .children('a');
               arr[i].hrefCompany = url + hrefCompany.attr('href');
+              // найдем были ли раньше в массиве уже ссылки на компанию, если были то в свойство site
+              // запишем '!#' + первый индекс массива с такой же компанией, в дальнейшем
+              // когда мы получим сайт компании по этому индексу, по пробежимся по всему массиву
+              // и заполним свойство site у элементов массива, имеющих такую же ссылку на компанию
+              let fl = -1;
+              for (let j = 0; j < i; j++) {
+                if (arr[j].hrefCompany === arr[i].hrefCompany) {
+                  fl = j;
+                  break;
+                }
+              }
+              if (fl !== -1) {
+                arr[i].site = '!#' + fl;
+              }
               arr[i].companyName = hrefCompany.children('b').text();
               break;
             case 'Телефон:':
@@ -113,6 +130,12 @@ const readCompany = (arr, i) => {
       arr[i].site = $company('.website-company')
         .children('a')
         .attr('href');
+      // теперь найдем все элементы  '!#' + i, сайт у этих элементов будет такой же как у arr[i]
+      for (let j = i + 1; j < arr.length; j++) {
+        if (arr[j].site === '!#' + i) {
+          arr[j].site = arr[i].site;
+        }
+      }
       return arr;
     });
   };

@@ -33,7 +33,7 @@ if (argv.format !== 'json' && argv.format !== 'excel') {
       if (argv.group) {
         fs.writeFileSync('scrape.json', JSON.stringify(groupByCity(res), '', 2));
       } else {
-        fs.writeFileSync('scrape.json', JSON.stringify(res));
+        fs.writeFileSync('scrape.json', JSON.stringify(res, '', 2));
       }
     } else {
       exportToExcel(res);
